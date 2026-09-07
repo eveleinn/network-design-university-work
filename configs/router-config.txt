@@ -1,0 +1,92 @@
+ip dhcp excluded-address 192.168.11.1
+ip dhcp excluded-address 192.168.13.1
+ip dhcp excluded-address 192.168.12.1
+!
+ip dhcp pool VLAN11
+network 192.168.11.0 255.255.255.128
+default-router 192.168.11.1
+dns-server 8.8.8.8
+ip dhcp pool VLAN12
+network 192.168.12.0 255.255.255.240
+default-router 192.168.12.1
+dns-server 8.8.8.8
+ip dhcp pool VLAN13
+network 192.168.13.0 255.255.255.128
+default-router 192.168.13.1
+dns-server 8.8.8.8
+!
+interface FastEthernet0/0
+no ip address
+duplex auto
+speed auto
+!
+interface FastEthernet0/0.11
+encapsulation dot1Q 11
+ip address 192.168.11.1 255.255.255.128
+ip access-group otdel1 in
+ip nat inside
+!
+interface FastEthernet0/0.12
+encapsulation dot1Q 12
+ip address 192.168.12.1 255.255.255.240
+ip access-group otdel2 in
+ip nat inside
+!
+interface FastEthernet0/0.13
+encapsulation dot1Q 13
+ip address 192.168.13.1 255.255.255.128
+ip access-group otdel3 in
+ip nat inside
+!
+interface FastEthernet0/1
+no ip address
+duplex auto
+speed auto
+shutdown
+!
+interface Serial0/0/0
+ip address 194.54.65.42 255.255.255.248
+ip access-group internet in
+ip nat outside
+!
+interface Serial0/0/1
+no ip address
+clock rate 2000000
+shutdown
+!
+interface Vlan1
+no ip address
+shutdown
+!
+ip nat inside source list NAT interface Serial0/0/0 overload
+ip nat inside source static tcp 192.168.11.10 80 194.54.65.43 80 
+ip classless
+ip route 0.0.0.0 0.0.0.0 194.54.65.41 
+!
+ip flow-export version 9
+!
+!
+ip access-list standard NAT
+permit 192.168.11.0 0.0.0.127
+permit 192.168.13.0 0.0.0.127
+ip access-list extended internet
+permit tcp any host 194.54.65.43 eq www
+permit tcp any host 194.54.65.43 eq 443
+permit tcp any 192.168.11.0 0.0.0.127 established
+permit tcp any 192.168.13.0 0.0.0.127 established
+permit icmp any any echo-reply
+deny ip any any
+ip access-list extended otdel1
+permit icmp 192.168.11.0 0.0.0.127 any echo-reply
+deny ip 192.168.11.0 0.0.0.127 192.168.12.0 0.0.0.15
+deny ip 192.168.11.0 0.0.0.127 192.168.13.0 0.0.0.127
+permit ip any any
+ip access-list extended otdel2
+permit ip 192.168.12.0 0.0.0.15 192.168.11.0 0.0.0.127
+permit ip 192.168.12.0 0.0.0.15 192.168.13.0 0.0.0.127
+deny ip any any
+ip access-list extended otdel3
+permit icmp 192.168.13.0 0.0.0.127 any echo-reply
+deny ip 192.168.13.0 0.0.0.127 192.168.12.0 0.0.0.15
+deny ip 192.168.13.0 0.0.0.127 192.168.11.0 0.0.0.127
+permit ip any any
